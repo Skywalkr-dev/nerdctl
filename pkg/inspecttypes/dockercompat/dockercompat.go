@@ -400,11 +400,28 @@ func ContainerFromNative(n *native.Container) (*Container, error) {
 	}
 
 	c.HostConfig.Tmpfs = make(map[string]string)
-	if nerdctlMounts := n.Labels[labels.Mounts]; nerdctlMounts != "" {
+	nerdctlMounts := labels.GetMount(n.Labels)
+	if nerdctlMounts != "" {
 		mounts, err := parseMounts(nerdctlMounts)
 		if err != nil {
 			return nil, err
 		}
+
+		c.Mounts = mounts
+		for _, mount := range mounts {
+			if mount.Type == "tmpfs" {
+				c.HostConfig.Tmpfs[mount.Destination] = mount.Mode
+			}
+		}
+	}
+
+	if nerdctlMounts != "" {
+		mounts, err := parseMounts(nerdctlMounts)
+
+		if err != nil {
+			return nil, err
+		}
+
 		c.Mounts = mounts
 		for _, mount := range mounts {
 			if mount.Type == "tmpfs" {
