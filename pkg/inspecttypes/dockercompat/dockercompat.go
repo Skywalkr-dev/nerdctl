@@ -400,14 +400,32 @@ func ContainerFromNative(n *native.Container) (*Container, error) {
 	}
 
 	c.HostConfig.Tmpfs = make(map[string]string)
-	if nerdctlMounts := n.Labels[labels.Mounts]; nerdctlMounts != "" {
-		mounts, err := parseMounts(nerdctlMounts)
-		if err != nil {
-			return nil, err
+	var nerdctlMounts string
+	if legacyMounts:=n.Labels[labels.Mounts];legacyMounts!=""{
+		nerdctlMounts = legacyMounts //for mounts following the size limit
+	}else{
+		counter:=0 
+		for{
+			key:=fmt.Sprintf("nerdctl/mounts/chunk-%d",counter)
+			if chunk,ok:=n.Labels[key]; ok && chunk!=""{
+				nerdctlMounts +=chunk 
+				counter++
+			}else{
+				break 
+			}
 		}
+	}
+
+	if nerdctlMounts!=""{
+		mounts,err := parseMounts(nerdctlMounts)
+
+		if err!=nil{
+			return nil,err 
+		}
+		
 		c.Mounts = mounts
-		for _, mount := range mounts {
-			if mount.Type == "tmpfs" {
+		for _,mount:=range mounts {
+			if mount.Type == "tmpfs"{
 				c.HostConfig.Tmpfs[mount.Destination] = mount.Mode
 			}
 		}

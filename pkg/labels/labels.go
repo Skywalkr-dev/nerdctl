@@ -86,6 +86,9 @@ const (
 	// Mounts is the mount points for the container.
 	Mounts = Prefix + "mounts"
 
+	// MaxMountLabelLength is the maximum safe byte size for a single mount label chunk
+	MaxMountLabelLength=4000
+
 	// StopTimeout is seconds to wait for stop a container.
 	StopTimeout = Prefix + "stop-timeout"
 

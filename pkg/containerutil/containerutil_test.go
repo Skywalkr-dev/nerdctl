@@ -19,6 +19,8 @@ package containerutil
 import (
 	"reflect"
 	"testing"
+
+	"github.com/containerd/nerdctl/v2/pkg/labels"
 )
 
 func TestParseExtraHosts(t *testing.T) {
@@ -79,5 +81,44 @@ func TestParseExtraHosts(t *testing.T) {
 				t.Fatalf("expected %v, actual %v", test.expected, extraHosts)
 			}
 		})
+	}
+}
+
+
+func TestGetContainerVolumes_Chunked(t *testing.T) {
+
+	part0 := `[{"Type":"volume","Name":"vol-0","Source":"/var/lib/vol-0","Destination":"/mnt/vol-0"},`
+	part1 := `{"Type":"volume","Name":"vol-1","Source":"/var/lib/vol-1","Destination":"/mnt/vol-1"},`
+	part2 := `{"Type":"volume","Name":"vol-2","Source":"/var/lib/vol-2","Destination":"/mnt/vol-2"}]`
+	
+	rawJSON := part0 + part1 + part2
+
+	chunkedLabels := map[string]string{
+		"nerdctl/mounts/chunk-0": part0,
+		"nerdctl/mounts/chunk-1": part1,
+		"nerdctl/mounts/chunk-2": part2,
+	}
+
+	legacyLabels := map[string]string{
+		labels.Mounts: rawJSON,
+	}
+
+	chunkedResult := GetContainerVolumes(chunkedLabels)
+	legacyResult := GetContainerVolumes(legacyLabels)
+
+	if len(chunkedResult) == 0 {
+		t.Fatal("Expected to extract volumes from chunked labels, but got 0 results")
+	}
+
+	if len(chunkedResult) != len(legacyResult) {
+		t.Errorf("Mismatched output! Chunked found %d volumes, Legacy found %d volumes.", 
+			len(chunkedResult), len(legacyResult))
+	}
+
+	if chunkedResult[0].Name != "vol-0" {
+		t.Errorf("Expected first volume to be named 'vol-0', got '%s'", chunkedResult[0].Name)
+	}
+	if chunkedResult[2].Name != "vol-2" {
+		t.Errorf("Expected third volume to be named 'vol-2', got '%s'", chunkedResult[2].Name)
 	}
 }

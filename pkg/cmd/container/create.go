@@ -829,7 +829,22 @@ func withInternalLabels(internalLabels internalLabels) (containerd.NewContainerO
 		if err != nil {
 			return nil, err
 		}
-		m[labels.Mounts] = string(mountPointsJSON)
+		jsonMountString := string(mountPointsJSON)
+		if len(jsonMountString)<=labels.MaxMountLabelLength{
+			m[labels.Mounts] = jsonMountString 
+		}else{
+			counter:=0 
+			for len(jsonMountString)>0{
+				chunkSize := labels.MaxMountLabelLength
+				if len(jsonMountString)<chunkSize{
+					chunkSize = len(jsonMountString)
+				}
+				key:=fmt.Sprintf("nerdctl/mounts/chunk-%d",counter)
+				m[key] = jsonMountString[:chunkSize]
+				jsonMountString = jsonMountString[chunkSize:]
+				counter++
+			}
+		}
 	}
 
 	if internalLabels.macAddress != "" {

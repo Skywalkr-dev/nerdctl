@@ -335,10 +335,26 @@ func generateMountOpts(ctx context.Context, client *containerd.Client, ensuredIm
 					return nil, nil, nil, err
 				}
 			}
-			if m, found := ls[labels.Mounts]; found {
-				err = json.Unmarshal([]byte(m), &vfMountPoints)
-				if err != nil {
-					return nil, nil, nil, err
+			
+			var nerdctlMounts string 
+			if legacyMounts,found:=ls[labels.Mounts]; found&&legacyMounts != "" {
+				nerdctlMounts = legacyMounts
+			}else{
+				counter:=0 
+				for {
+					key:=fmt.Sprintf("nerdctl/mounts/chunk-%d",counter)
+					if chunk,ok:=ls[key]; ok && chunk != "" {
+						nerdctlMounts += chunk 
+						counter++
+					}else{
+						break
+					}
+				}
+			}
+			if nerdctlMounts!=""{
+				err=json.Unmarshal([]byte(nerdctlMounts),&vfMountPoints)
+				if err!=nil{
+					return nil,nil,nil,err
 				}
 			}
 

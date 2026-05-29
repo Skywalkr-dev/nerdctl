@@ -92,8 +92,24 @@ func usedVolumes(ctx context.Context, containers []containerd.Container) (map[st
 			}
 			return nil, err
 		}
-		mountsJSON, ok := l[labels.Mounts]
-		if !ok {
+
+		var mountsJSON string 
+		if legacyMount,ok:=l[labels.Mounts];ok && legacyMount!=""{
+			mountsJSON = legacyMount 
+		}else{
+			counter:=0 
+			for {
+				key:=fmt.Sprintf("nerdctl/mounts/chunk-%d",counter)
+				if chunk,ok:=l[key]; ok && chunk != ""{
+					mountsJSON += chunk 
+					counter++
+				}else{
+					break
+				}
+			}
+		}
+
+		if mountsJSON=="" { //no legacy or chunk labels found
 			continue
 		}
 

@@ -583,8 +583,28 @@ type ContainerVolume struct {
 func GetContainerVolumes(containerLabels map[string]string) []*ContainerVolume {
 	var vols []*ContainerVolume
 	volLabels := []string{labels.AnonymousVolumes, labels.Mounts}
-	for _, volLabel := range volLabels {
+	for _, volLabel := range volLabels {	
 		names, ok := containerLabels[volLabel]
+	
+		if volLabel==labels.Mounts && (!ok || names == ""){
+			var finalChunkMounts string
+			counter:=0 
+			for{
+				key:=fmt.Sprintf("nerdctl/mounts/chunk-%d",counter)
+				if chunk,found:=containerLabels[key];found && chunk!=""{
+					finalChunkMounts += chunk
+					counter++
+				}else{
+					break
+				}
+			}
+
+			if finalChunkMounts!=""{
+				names = finalChunkMounts
+				ok = true
+			}
+		}
+
 		if !ok {
 			continue
 		}
